@@ -1,0 +1,28 @@
+BATIDA
+======
+Player de musica leve para Windows: busca no YouTube e toca so o audio, sem navegador.
+
+COMO USAR
+1. Extraia esta pasta em um lugar fixo (ex.: C:\Apps\Beat).
+2. De dois cliques em build.bat (gera o Beat.exe).
+3. Abra o Beat.exe. Na primeira vez ele baixa o yt-dlp.exe sozinho
+   (ou copie o yt-dlp.exe da versao anterior para esta pasta).
+
+RECURSOS
+- Abas: Busca, Favoritos, Playlists. Miniatura (capa) do video em cada musica e no player.
+- Coracao na lista (ou no player) para favoritar.
+- Botao direito numa musica: tocar, favoritar, adicionar a playlist, remover da playlist.
+- Relacionadas: com o botao ligado (ou pelo botao direito > Tocar musicas relacionadas), quando a fila esta
+  acabando o app busca o Mix do YouTube da faixa atual e continua com musicas parecidas, sem parar.
+- Aleatorio, repetir (lista / uma faixa), volume e progresso.
+- Teclas de midia do teclado (play/pause, proxima, anterior, parar) funcionam com o app em segundo plano.
+- Fechar a janela enquanto toca manda o Beat para a bandeja (perto do relogio); clique no icone para abrir,
+  botao direito para Sair. Se nao estiver tocando, fechar encerra o app.
+- Lembra a ultima busca, o volume, aleatorio/repetir, favoritos e playlists.
+
+ATALHOS
+- Enter na busca: buscar | Enter/duplo clique na lista: tocar | Espaco: pausar/continuar
+
+DADOS
+- Favoritos e playlists ficam em %APPDATA%\Beat\dados.txt (pode copiar como backup).
+- O yt-dlp se atualiza sozinho a cada 7 dias. Se parar de funcionar, apague o yt-dlp.exe e abra o app de novo.
