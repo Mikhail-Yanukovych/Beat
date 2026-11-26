@@ -1007,6 +1007,7 @@ namespace Beat
         LyricsView lyricsView;
         IconButton btnLetra, bLetra2, btnAdd, bAdd2;
         bool lyricsAvail, lyricsOpen;
+        const double LyricsLag = 0.45;   // a letra (LRC) costuma vir adiantada em relacao ao audio
         int lyricsToken;
         DateTime lyricsHoldUntil = DateTime.MinValue;
         IconButton btnGear;
@@ -2827,7 +2828,7 @@ namespace Beat
             lyricsView.LineClicked += delegate(int li)
             {
                 if (li < 0 || li >= lyricsView.Times.Length) return;
-                try { wmp.controls.currentPosition = lyricsView.Times[li]; } catch (Exception) { }
+                try { wmp.controls.currentPosition = lyricsView.Times[li] + LyricsLag + 0.05; } catch (Exception) { }
                 lyricsHoldUntil = DateTime.Now.AddMilliseconds(700);
                 lyricsView.SetCurrent(li);
             };
@@ -2978,7 +2979,7 @@ namespace Beat
                 double pos = 0;
                 try { pos = (double)wmp.controls.currentPosition; } catch (Exception) { }
                 int li = -1;
-                for (int k = 0; k < lyricsView.Times.Length; k++) { if (lyricsView.Times[k] <= pos - 0.45) li = k; else break; }
+                for (int k = 0; k < lyricsView.Times.Length; k++) { if (lyricsView.Times[k] <= pos - LyricsLag) li = k; else break; }
                 lyricsView.SetCurrent(li);
             }
             if (bPlay.Glyph != btnPlay.Glyph) { bPlay.Glyph = btnPlay.Glyph; bPlay.Invalidate(); }
