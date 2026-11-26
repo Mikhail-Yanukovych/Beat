@@ -283,6 +283,23 @@ namespace Beat
 
     static class Gfx
     {
+        // coracao desenhado (centrado em cx,cy; w = largura total)
+        public static void Heart(Graphics g, float cx, float cy, float w, Color c, bool filled)
+        {
+            float h = w * 0.92f;
+            using (GraphicsPath gp = new GraphicsPath())
+            {
+                gp.AddBezier(cx, cy + h * 0.5f, cx - w * 0.68f, cy + h * 0.08f, cx - w * 0.50f, cy - h * 0.58f, cx, cy - h * 0.2f);
+                gp.AddBezier(cx, cy - h * 0.2f, cx + w * 0.50f, cy - h * 0.58f, cx + w * 0.68f, cy + h * 0.08f, cx, cy + h * 0.5f);
+                gp.CloseFigure();
+                SmoothingMode old = g.SmoothingMode;
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                if (filled) using (SolidBrush b = new SolidBrush(c)) g.FillPath(b, gp);
+                else using (Pen pn = new Pen(c, Math.Max(1.6f, w * 0.095f))) { pn.LineJoin = LineJoin.Round; g.DrawPath(pn, gp); }
+                g.SmoothingMode = old;
+            }
+        }
+
         public static GraphicsPath RoundRect(Rectangle r, int radius)
         {
             int d = radius * 2;
@@ -549,6 +566,23 @@ namespace Beat
                         g.DrawPath(pn, gp);
                     using (GraphicsPath gp2 = Gfx.RoundRect(new Rectangle((int)(ox + 18f * k), (int)(oy + 19f * k), (int)(13f * k), (int)(9.5f * k)), Math.Max(1, (int)(2.5f * k))))
                         g.FillPath(b, gp2);
+                }
+                else if (Glyph == "heart" || Glyph == "hearton")
+                {
+                    Gfx.Heart(g, cx, cy + 0.5f, s * 0.50f, fc, Glyph == "hearton");
+                }
+                else if (Glyph == "plus")
+                {
+                    // cruz desenhada (centrada de verdade, sem depender da fonte)
+                    float L = (float)Math.Round(s * 0.20f);
+                    float px = (float)Math.Round(cx), py = (float)Math.Round(cy);
+                    using (Pen pn = new Pen(fc, 2f))
+                    {
+                        pn.StartCap = LineCap.Flat;
+                        pn.EndCap = LineCap.Flat;
+                        g.DrawLine(pn, px - L, py, px + L, py);
+                        g.DrawLine(pn, px, py - L, px, py + L);
+                    }
                 }
                 else if (Glyph == "back")
                 {
@@ -1428,7 +1462,8 @@ namespace Beat
             btnLink.Outline = true;
             btnLink.Click += delegate { CopyLink(nowTrack); };
 
-            btnHeart = MakeIcon("\u2661", new Size(40, 40), Dim);
+            btnHeart = MakeIcon("", new Size(40, 40), Dim);
+            btnHeart.Glyph = "heart";
             btnHeart.Anchor = AnchorStyles.None;
             btnHeart.Click += delegate { if (nowTrack != null) ToggleFav(nowTrack); };
 
@@ -2042,7 +2077,7 @@ namespace Beat
         void UpdateHeart()
         {
             bool fav = nowTrack != null && IsFav(nowTrack.Id);
-            btnHeart.Text = fav ? "♥" : "♡";
+            btnHeart.Glyph = fav ? "hearton" : "heart";
             btnHeart.ForeColor = fav ? Accent : Dim;
             btnHeart.Invalidate();
         }
@@ -2730,7 +2765,8 @@ namespace Beat
             bLink.Outline = true;
             bLink.Click += delegate { CopyLink(nowTrack); };
 
-            bHeart2 = MakeIcon("♡", new Size(40, 40), Dim);
+            bHeart2 = MakeIcon("", new Size(40, 40), Dim);
+            bHeart2.Glyph = "heart";
             bHeart2.Click += delegate { if (nowTrack != null) ToggleFav(nowTrack); };
 
             lblVolTxt = new Label();
@@ -2786,7 +2822,7 @@ namespace Beat
             Controls.Add(nowPanel);
 
             nowTimer = new System.Windows.Forms.Timer();
-            nowTimer.Interval = 300;
+            nowTimer.Interval = 120;
             nowTimer.Tick += delegate { SyncNow(); };
         }
 
@@ -2877,6 +2913,7 @@ namespace Beat
         {
             nowShown = false;
             nowTimer.Stop();
+            if (lyricsOpen) { lyricsOpen = false; UpdateLetraButtons(); }   // fechar a tela cheia fecha a letra (botao apaga)
             ApplyView();
             if (view == 3) RefreshHome();
         }
@@ -2917,7 +2954,7 @@ namespace Beat
                 double pos = 0;
                 try { pos = (double)wmp.controls.currentPosition; } catch (Exception) { }
                 int li = -1;
-                for (int k = 0; k < lyricsView.Times.Length; k++) { if (lyricsView.Times[k] <= pos + 0.2) li = k; else break; }
+                for (int k = 0; k < lyricsView.Times.Length; k++) { if (lyricsView.Times[k] <= pos - 0.45) li = k; else break; }
                 lyricsView.SetCurrent(li);
             }
             if (bPlay.Glyph != btnPlay.Glyph) { bPlay.Glyph = btnPlay.Glyph; bPlay.Invalidate(); }
@@ -2928,10 +2965,10 @@ namespace Beat
                 bRepeat.Text = btnRepeat.Text;
                 bRepeat.Invalidate();
             }
-            if (bHeart2.ForeColor != btnHeart.ForeColor || bHeart2.Text != btnHeart.Text)
+            if (bHeart2.ForeColor != btnHeart.ForeColor || bHeart2.Glyph != btnHeart.Glyph)
             {
                 bHeart2.ForeColor = btnHeart.ForeColor;
-                bHeart2.Text = btnHeart.Text;
+                bHeart2.Glyph = btnHeart.Glyph;
                 bHeart2.Invalidate();
             }
             if (bRelated2.Filled != btnRelated.Filled || bRelated2.ForeColor != btnRelated.ForeColor || bRelated2.OutlineColor != btnRelated.OutlineColor)
@@ -3398,8 +3435,7 @@ namespace Beat
         IconButton MakeAddBtn()
         {
             IconButton b = new IconButton();
-            b.Text = "+";
-            b.Font = new Font("Segoe UI", 15f);
+            b.Glyph = "plus";
             b.Size = new Size(30, 30);
             b.BackColor = BgPanel;
             b.ForeColor = Dim;
@@ -4623,9 +4659,8 @@ namespace Beat
             TextRenderer.DrawText(e.Graphics, (cur ? "\u266A  " : "") + t.Title, fontBold, r1, tc, f);
             TextRenderer.DrawText(e.Graphics, t.Channel, fontSmall, r2, Dim, f);
             bool fav = IsFav(t.Id);
-            TextRenderer.DrawText(e.Graphics, fav ? "\u2665" : "\u2661", fontSym, rHeart,
-                fav ? Accent : Color.FromArgb(95, 95, 95),
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+            Gfx.Heart(e.Graphics, rHeart.X + rHeart.Width / 2f, rHeart.Y + rHeart.Height / 2f + 0.5f, 18f,
+                fav ? Accent : Color.FromArgb(95, 95, 95), fav);
             TextRenderer.DrawText(e.Graphics, t.Duration, fontSmall, rDur, Dim,
                 TextFormatFlags.Right | TextFormatFlags.NoPrefix);
             using (Pen p = new Pen(Line)) e.Graphics.DrawLine(p, e.Bounds.X + 16, e.Bounds.Bottom - 1, right - 16, e.Bounds.Bottom - 1);
