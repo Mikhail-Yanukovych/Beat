@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beat - ouça esta música</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0e0e0e; color: #fff; font-family: "Segoe UI", system-ui, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  main { width: 100%; max-width: 380px; padding: 32px 20px; text-align: center; }
+  .brand { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 26px; font-size: 18px; font-weight: 600; }
+  .logo { width: 28px; height: 28px; border-radius: 8px; background: #ff5050; display: inline-flex; align-items: center; justify-content: center; }
+  .logo svg { width: 16px; height: 16px; }
+  .cover { width: 100%; max-width: 300px; aspect-ratio: 16 / 9; border-radius: 12px; background: #1e1e1e center / cover no-repeat; margin: 0 auto; }
+  h1 { font-size: 18px; font-weight: 600; margin: 16px 0 0; word-break: break-word; }
+  .sub { font-size: 15px; margin-top: 24px; }
+  .hint { font-size: 12px; color: #919191; margin-top: 4px; }
+  .btns { display: flex; flex-direction: column; gap: 10px; margin: 20px auto 0; width: 260px; }
+  a.btn, button.btn { display: block; border: 0; border-radius: 10px; padding: 12px 0; font: inherit; font-size: 14px; color: #fff; text-decoration: none; cursor: pointer; }
+  .primary { background: #ff5050; font-weight: 600; }
+  .primary:hover { background: #ff6b6b; }
+  .secondary { background: #262626; }
+  .secondary:hover { background: #303030; }
+  .card { margin: 22px auto 0; width: 300px; background: #181818; border: 1px solid #2a2a2a; border-radius: 12px; padding: 16px; }
+  .card b { font-size: 14px; }
+  .card .btn { margin-top: 14px; }
+  .again { margin-top: 12px; font-size: 12px; color: #919191; }
+  .again button { background: none; border: 0; color: #919191; text-decoration: underline; cursor: pointer; font: inherit; padding: 0; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">
+    <span class="logo"><svg viewBox="0 0 16 16" fill="#fff"><rect x="1" y="7" width="3" height="8" rx="1"/><rect x="6.5" y="1" width="3" height="14" rx="1"/><rect x="12" y="5" width="3" height="10" rx="1"/></svg></span>
+    Beat
+  </div>
+
+  <div id="song" hidden>
+    <div class="cover" id="cover"></div>
+    <h1 id="title">Música no Beat</h1>
+
+    <div id="main">
+      <div class="sub">Ouça esta música no Beat</div>
+      <div class="hint">Player de música leve para Windows. Grátis e sem anúncios.</div>
+      <div class="btns">
+        <a class="btn primary" id="dl" href="https://github.com/Mikhail-Yanukovych/Beat/releases/latest/download/BeatSetup.exe">Baixar o Beat</a>
+        <button class="btn secondary" id="open" type="button">Já tenho, abrir no Beat</button>
+      </div>
+    </div>
+
+    <div class="card" id="nf" hidden>
+      <b>Não encontramos o Beat neste computador</b>
+      <div class="hint" style="margin-top:6px">Instale o Beat e depois clique no link de novo para ouvir esta música.</div>
+      <a class="btn primary" href="https://github.com/Mikhail-Yanukovych/Beat/releases/latest/download/BeatSetup.exe">Baixar o Beat</a>
+      <div class="again">Já instalou? <button type="button" id="again">Tentar abrir de novo</button></div>
+    </div>
+  </div>
+
+  <div id="bad" hidden>
+    <div class="sub">Link inválido</div>
+    <div class="hint">Peça para quem enviou copiar o link de novo dentro do Beat.</div>
+    <div class="btns"><a class="btn primary" href="https://github.com/Mikhail-Yanukovych/Beat/releases/latest/download/BeatSetup.exe">Baixar o Beat</a></div>
+  </div>
+</main>
+
+<script>
+(function () {
+  var id = new URLSearchParams(location.search).get("m") || "";
+  if (!/^[A-Za-z0-9_-]{11}$/.test(id)) { document.getElementById("bad").hidden = false; return; }
+  document.getElementById("song").hidden = false;
+  document.getElementById("cover").style.backgroundImage = "url(https://i.ytimg.com/vi/" + id + "/mqdefault.jpg)";
+
+  fetch("https://www.youtube.com/oembed?format=json&url=" + encodeURIComponent("https://www.youtube.com/watch?v=" + id))
+    .then(function (r) { return r.json(); })
+    .then(function (d) { if (d && d.title) { document.getElementById("title").textContent = d.title; document.title = d.title + " - Beat"; } })
+    .catch(function () {});
+
+  var left = false, timer = null;
+  window.addEventListener("blur", function () { left = true; });
+  document.addEventListener("visibilitychange", function () { if (document.hidden) left = true; });
+
+  function tryOpen() {
+    left = false;
+    document.getElementById("nf").hidden = true;
+    clearTimeout(timer);
+    location.href = "beat://musica/" + id;
+    timer = setTimeout(function () {
+      if (!left && !document.hidden) {
+        document.getElementById("main").hidden = true;
+        document.getElementById("nf").hidden = false;
+      }
+    }, 2200);
+  }
+  document.getElementById("open").addEventListener("click", tryOpen);
+  document.getElementById("again").addEventListener("click", tryOpen);
+})();
+</script>
+</body>
+</html>
