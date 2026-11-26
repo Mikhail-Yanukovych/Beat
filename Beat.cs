@@ -211,6 +211,7 @@ namespace Beat
         public double[] Times = new double[0];
         public bool Synced;
         public int Cur = -1;
+        public event Action<int> LineClicked;
         float scroll, target;
         const int LH = 42;
         Font fCur = new Font("Segoe UI", 19f, FontStyle.Bold);
@@ -235,6 +236,7 @@ namespace Beat
         public void SetData(string[] lines, double[] times, bool synced)
         {
             Lines = lines; Times = times; Synced = synced; Cur = -1;
+            Cursor = synced ? Cursors.Hand : Cursors.Default;
             scroll = 0; target = 0;
             Invalidate();
         }
@@ -245,6 +247,14 @@ namespace Beat
             Cur = i;
             target = Math.Max(0, i);
             anim.Start();
+        }
+
+        protected override void OnMouseClick(MouseEventArgs e)
+        {
+            base.OnMouseClick(e);
+            if (!Synced || e.Button != MouseButtons.Left || LineClicked == null) return;
+            int i = (int)Math.Floor((e.Y - (Height / 2 - LH / 2)) / (float)LH + scroll);
+            if (i >= 0 && i < Lines.Length && i < Times.Length) LineClicked(i);
         }
 
         protected override void OnMouseWheel(MouseEventArgs e)
@@ -283,19 +293,25 @@ namespace Beat
 
     static class Gfx
     {
-        // coracao desenhado (centrado em cx,cy; w = largura total)
+        // coracao desenhado (centrado em cx,cy; w = largura total) - formato classico
         public static void Heart(Graphics g, float cx, float cy, float w, Color c, bool filled)
         {
-            float h = w * 0.92f;
+            float sc = w / 20f;
+            float ox = cx - 12f * sc, oy = cy - 12.175f * sc;
             using (GraphicsPath gp = new GraphicsPath())
             {
-                gp.AddBezier(cx, cy + h * 0.5f, cx - w * 0.68f, cy + h * 0.08f, cx - w * 0.50f, cy - h * 0.58f, cx, cy - h * 0.2f);
-                gp.AddBezier(cx, cy - h * 0.2f, cx + w * 0.50f, cy - h * 0.58f, cx + w * 0.68f, cy + h * 0.08f, cx, cy + h * 0.5f);
+                gp.AddLine(ox + 12f * sc, oy + 21.35f * sc, ox + 10.55f * sc, oy + 20.03f * sc);
+                gp.AddBezier(ox + 10.55f * sc, oy + 20.03f * sc, ox + 5.4f * sc, oy + 15.36f * sc, ox + 2f * sc, oy + 12.28f * sc, ox + 2f * sc, oy + 8.5f * sc);
+                gp.AddBezier(ox + 2f * sc, oy + 8.5f * sc, ox + 2f * sc, oy + 5.42f * sc, ox + 4.42f * sc, oy + 3f * sc, ox + 7.5f * sc, oy + 3f * sc);
+                gp.AddBezier(ox + 7.5f * sc, oy + 3f * sc, ox + 9.24f * sc, oy + 3f * sc, ox + 10.91f * sc, oy + 3.81f * sc, ox + 12f * sc, oy + 5.09f * sc);
+                gp.AddBezier(ox + 12f * sc, oy + 5.09f * sc, ox + 13.09f * sc, oy + 3.81f * sc, ox + 14.76f * sc, oy + 3f * sc, ox + 16.5f * sc, oy + 3f * sc);
+                gp.AddBezier(ox + 16.5f * sc, oy + 3f * sc, ox + 19.58f * sc, oy + 3f * sc, ox + 22f * sc, oy + 5.42f * sc, ox + 22f * sc, oy + 8.5f * sc);
+                gp.AddBezier(ox + 22f * sc, oy + 8.5f * sc, ox + 22f * sc, oy + 12.28f * sc, ox + 18.6f * sc, oy + 15.36f * sc, ox + 13.45f * sc, oy + 20.03f * sc);
                 gp.CloseFigure();
                 SmoothingMode old = g.SmoothingMode;
                 g.SmoothingMode = SmoothingMode.AntiAlias;
                 if (filled) using (SolidBrush b = new SolidBrush(c)) g.FillPath(b, gp);
-                else using (Pen pn = new Pen(c, Math.Max(1.6f, w * 0.095f))) { pn.LineJoin = LineJoin.Round; g.DrawPath(pn, gp); }
+                else using (Pen pn = new Pen(c, Math.Max(1.6f, w * 0.09f))) { pn.LineJoin = LineJoin.Round; g.DrawPath(pn, gp); }
                 g.SmoothingMode = old;
             }
         }
@@ -559,7 +575,7 @@ namespace Beat
                 }
                 else if (Glyph == "mini")
                 {
-                    float k = Math.Min(Width, Height) / 40f * 0.93f;
+                    float k = Math.Min(Width, Height) / 40f * 1.05f;
                     float ox = (Width - 40f * k) / 2f, oy = (Height - 40f * k) / 2f;
                     using (GraphicsPath gp = Gfx.RoundRect(new Rectangle((int)(ox + 9.5f * k), (int)(oy + 11.5f * k), (int)(21f * k), (int)(16f * k)), Math.Max(2, (int)(3.5f * k))))
                     using (Pen pn = new Pen(fc, Math.Max(1.5f, 2.4f * k)))
@@ -574,7 +590,7 @@ namespace Beat
                 else if (Glyph == "plus")
                 {
                     // cruz desenhada (centrada de verdade, sem depender da fonte)
-                    float L = (float)Math.Round(s * 0.20f);
+                    float L = (float)Math.Round(s * 0.17f);
                     float px = (float)Math.Round(cx), py = (float)Math.Round(cy);
                     using (Pen pn = new Pen(fc, 2f))
                     {
@@ -992,6 +1008,7 @@ namespace Beat
         IconButton btnLetra, bLetra2, btnAdd, bAdd2;
         bool lyricsAvail, lyricsOpen;
         int lyricsToken;
+        DateTime lyricsHoldUntil = DateTime.MinValue;
         IconButton btnGear;
         ToggleSwitch tgClear, tgTray, tgAnim;
         bool optClearHist = false, optTray = true, optAnim = true, coversCleaned = false;
@@ -2807,6 +2824,13 @@ namespace Beat
             bAdd2.Click += delegate { ShowAddPop(bAdd2, false); };
             lyricsView = new LyricsView();
             lyricsView.Visible = false;
+            lyricsView.LineClicked += delegate(int li)
+            {
+                if (li < 0 || li >= lyricsView.Times.Length) return;
+                try { wmp.controls.currentPosition = lyricsView.Times[li]; } catch (Exception) { }
+                lyricsHoldUntil = DateTime.Now.AddMilliseconds(700);
+                lyricsView.SetCurrent(li);
+            };
             nowPanel.Controls.Add(lyricsView);
             nowPanel.Controls.Add(bLetra2);
             bMini2 = MakeMiniBtn();
@@ -2858,13 +2882,13 @@ namespace Beat
             bRepeat.SetBounds(cx, cy - 22, 44, 44);
             y += 64 + 18;
             int g40 = 40;
-            int rowW = 70 + g40 + 104 + g40 + 40 + g40 + 30 + g40 + 30 + g40 + 60 + 8 + 110;
+            int rowW = 70 + g40 + 104 + g40 + 40 + g40 + 30 + g40 + 40 + g40 + 60 + 8 + 110;
             int rx = (W - rowW) / 2;
             bLetra2.SetBounds(rx, y + 2, 70, 30); rx += 70 + g40;
             bLink.SetBounds(rx, y + 2, 104, 30); rx += 104 + g40;
             bHeart2.SetBounds(rx, y - 1, 40, 40); rx += 40 + g40;
             bAdd2.SetBounds(rx, y + 4, 30, 30); rx += 30 + g40;
-            bMini2.SetBounds(rx, y + 4, 30, 30); rx += 30 + g40;
+            bMini2.SetBounds(rx, y - 1, 40, 40); rx += 40 + g40;
             lblVolTxt.SetBounds(rx, y + 6, 60, 20); rx += 60 + 8;
             trkVol2.SetBounds(rx, y + 6, 110, 20);
         }
@@ -2949,7 +2973,7 @@ namespace Beat
             if (lblDur2.Text != lblDur.Text) lblDur2.Text = lblDur.Text;
             if (!trkVol2.Dragging && trkVol2.Value != trkVol.Value) trkVol2.Value = trkVol.Value;
             if (lblBigSub.Text != lblSub.Text) lblBigSub.Text = lblSub.Text;
-            if (lyricsView.Visible && lyricsView.Synced)
+            if (lyricsView.Visible && lyricsView.Synced && DateTime.Now >= lyricsHoldUntil)
             {
                 double pos = 0;
                 try { pos = (double)wmp.controls.currentPosition; } catch (Exception) { }
@@ -3421,12 +3445,9 @@ namespace Beat
         IconButton MakeMiniBtn()
         {
             IconButton b = new IconButton();
-            b.Size = new Size(30, 30);
+            b.Size = new Size(40, 40);
             b.BackColor = BgPanel;
             b.ForeColor = Dim;
-            b.Radius = 14;
-            b.Outline = true;
-            b.OutlineColor = Color.FromArgb(95, 95, 95);
             b.Glyph = "mini";
             b.Anchor = AnchorStyles.None;
             return b;
